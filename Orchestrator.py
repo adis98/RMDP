@@ -1,7 +1,6 @@
 from OrderGenerator import Order
 from VehicleSelector import vehicleSelector
 from PositionSelector import positionSelector
-from VehicleRoute import VehicleRoute
 from SimulateVehicleMovement import singleVehicleStep
 
 
@@ -23,14 +22,14 @@ class Orchestrator:
         self.vehicleRoutes = []
         for i in range(self.numVehicles):
             self.vehicleLocations.append([0,0])
-            self.vehicleRoutes.append(VehicleRoute())
+            self.vehicleRoutes.append([]) #each vehicle route is a list of orders
 
     def start(self):
         generator = Order()
         self.orders = generator.generateOrders(self.mapSize, self.simulationDuration, self.vehicleCrossTime, self.numInitialOrders, self.deliveryWindowTime, self.minOrderReadyTime, self.maxOrderReadyTime, self.maxOrderArrivalTime, self.arrivalRate) #need to add params later
         while (self.currentTime < self.simulationDuration):
             ordersForCurrentTimeStep = self.getOrders(currentTime = self.currentTime)
-            self.vehicleRoutes = self.scheduleOrders(ordersForCurrentTimeStep)
+            self.vehicleRoutes = self.scheduleOrders(ordersForCurrentTimeStep, self.currentTime)
             self.currentTime, self.vehicleLocations, self.vehicleRoutes = self.vehiclesStep(self.numVehicles, self.vehicleRoutes, self.vehicleLocations, self.currentTime, self.mapSize, self.vehicleCrossTime) #simulates movement of vehicles and updates, locations, routes, and time for one time step
             print("----time:", self.currentTime)
             for vehicle in range(self.numVehicles):
@@ -44,11 +43,11 @@ class Orchestrator:
                 orders.append(order)
         return orders
 
-    def scheduleOrders(self,orders):
+    def scheduleOrders(self,orders, currTime):
         for order in orders:
-            vehicleNum = vehicleSelector(order, self.vehicleLocations, self.vehicleRoutes, self.numVehicles)
+            vehicleNum = vehicleSelector(order, self.vehicleLocations, self.vehicleRoutes, self.numVehicles, currTime)
             position = positionSelector(self.vehicleLocations[vehicleNum], self.vehicleRoutes[vehicleNum])
-            self.vehicleRoutes[vehicleNum].insertOrder(order, position)
+            self.vehicleRoutes[vehicleNum].insert(position, order)
         return self.vehicleRoutes
 
 

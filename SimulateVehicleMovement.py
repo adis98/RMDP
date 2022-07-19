@@ -1,7 +1,7 @@
 def singleVehicleStep(route, vLoc, curTime, mapSz, speed): #return the vehicle's updated route and its location
     newRoute, newvLoc = route, vLoc
-    if(route.next is not None):
-        order = route.next.order
+    if(len(route) > 0):
+        order = route[0]
         if(order.orderPickedUp == False):
             newRoute, newvLoc = pickUpOrderOrMoveToRestaurant(route, vLoc, curTime, mapSz, speed, order)
         elif(order.orderPickedUp == True and order.orderDelivered == False):
@@ -62,8 +62,6 @@ def deliverOrder(route, vLoc, curTime, mapSz, speed, order):
                 vY += speedLeft
     if(vX == targetX and vY == targetY and curTime >= order.minDeliveryTime):
         order.orderDelivered = True
-        nextOrder = route.next.next
-        route.next = nextOrder
-        nextOrder.prev = route
+        route.pop(0)
 
     return route,[vX,vY]
