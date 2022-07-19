@@ -29,7 +29,7 @@ class Orchestrator:
         self.orders = generator.generateOrders(self.mapSize, self.simulationDuration, self.vehicleCrossTime, self.numInitialOrders, self.deliveryWindowTime, self.minOrderReadyTime, self.maxOrderReadyTime, self.maxOrderArrivalTime, self.arrivalRate) #need to add params later
         while (self.currentTime < self.simulationDuration):
             ordersForCurrentTimeStep = self.getOrders(currentTime = self.currentTime)
-            self.vehicleRoutes = self.scheduleOrders(ordersForCurrentTimeStep, self.currentTime)
+            self.vehicleRoutes = self.scheduleOrders(ordersForCurrentTimeStep, self.currentTime, self.mapSize)
             self.currentTime, self.vehicleLocations, self.vehicleRoutes = self.vehiclesStep(self.numVehicles, self.vehicleRoutes, self.vehicleLocations, self.currentTime, self.mapSize, self.vehicleCrossTime) #simulates movement of vehicles and updates, locations, routes, and time for one time step
             print("----time:", self.currentTime)
             for vehicle in range(self.numVehicles):
@@ -43,9 +43,9 @@ class Orchestrator:
                 orders.append(order)
         return orders
 
-    def scheduleOrders(self,orders, currTime):
+    def scheduleOrders(self,orders, currTime, mapSize):
         for order in orders:
-            vehicleNum = vehicleSelector(order, self.vehicleLocations, self.vehicleRoutes, self.numVehicles, currTime)
+            vehicleNum = vehicleSelector(order, self.vehicleLocations, self.vehicleRoutes, self.numVehicles, currTime, mapSize)
             position = positionSelector(self.vehicleLocations[vehicleNum], self.vehicleRoutes[vehicleNum])
             self.vehicleRoutes[vehicleNum].insert(position, order)
         return self.vehicleRoutes
