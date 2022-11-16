@@ -1,41 +1,32 @@
 import numpy as np
-from enum import Enum
 
-class EdgeType(Enum):
-    horizontal = 0
-    vertical = 1
 
-def getPreDecisionState(vehicleLocations, vehicleRoutes, currTime, mapSize):
-    vlocarray = np.array(vehicleLocations).flatten()
-    routestensor = convertRoutesToGraph(vehicleRoutes, mapSize)
-    flattened_routes = routestensor.flatten()
-    state = np.concatenate((vlocarray, flattened_routes))
-    state = np.concatenate((state, np.array([currTime])))
+def computeReward(initCost, bestCost):
+    return initCost - bestCost
+
+
+def getPreDecisionState(vehicleLocations, vehicleHops, currTime, mapSize):
+    routesTensor = convertHopsToGraph(vehicleHops, mapSize, vehicleLocations)
+    flattened_routes = routesTensor.flatten()
+    state = np.concatenate((flattened_routes, np.array([currTime])))
     return state
 
 
-def convertRoutesToGraph(vehicleRoutes, mapSize):
+def convertHopsToGraph(vehicleHops, mapSize, vehicleLocations):
     n = mapSize
-    graphDimEdgeNum = int(2*(n-1)*(n))
-    graphDimVehicleCount = int(len(vehicleRoutes))
+    graphDimEdgeNum = int(2 * (n - 1) * n)
+    graphDimVehicleCount = int(len(vehicleHops))
     graph = np.zeros((graphDimEdgeNum, graphDimVehicleCount), dtype=int)
-    for vehicle in range(len(vehicleRoutes)):
-        prev = None
-        for order in vehicleRoutes[vehicle]:
-            print("tanananana")
-            if (prev is None):
-                first = np.array([order.restaurantX, order.restaurantY])
-            else:
-                first = prev
-            second = np.array([order.customerX, order.customerY])
-            edge, sign = convertCoordinateToEdgeIndexAndSign(first, second, mapSize)
-            print(edge)
-            graph[edge, vehicle] = sign
-            prev = second
+    for vehicle in range(len(vehicleHops)):
+        currLoc = vehicleLocations[vehicle]
+        for hop in vehicleHops[vehicle]:
+            hop = hop[:2]
+            edges, signs = convertCoordinateToEdgeIndexAndSign(currLoc, hop, mapSize)
+            cols = np.array([vehicle] * len(edges))
+            if len(edges) != 0:
+                graph[edges, cols] = np.array(signs)
+            currLoc = hop
     return graph
-
-
-
 
 
 def convertEdgeIndexToCoordinates(val, mapSize, sign):  # val is the edge index, sign is +/-1 or 0
@@ -46,8 +37,8 @@ def convertEdgeIndexToCoordinates(val, mapSize, sign):  # val is the edge index,
         first = np.array([base_x, base_y])
         second = first + sign * (np.array([0, 1]))
         if sign < 0:
-            first = first + np.array([0,1])
-            second = second + np.array([0,1])
+            first = first + np.array([0, 1])
+            second = second + np.array([0, 1])
     else:
         rem = val % (n * (n - 1))
         base_y = rem // (n - 1)
@@ -55,32 +46,38 @@ def convertEdgeIndexToCoordinates(val, mapSize, sign):  # val is the edge index,
         first = np.array([base_x, base_y])
         second = first + sign * (np.array([1, 0]))
         if sign < 0:
-            first = first + np.array([1,0])
-            second = second + np.array([1,0])
+            first = first + np.array([1, 0])
+            second = second + np.array([1, 0])
     return first, second
 
-def convertCoordinateToEdgeIndexAndSign(first, second, mapSize): #first and second are numpy arrays
+
+def convertCoordinateToEdgeIndexAndSign(source, destination, mapSize):  # first and second are numpy arrays
     n = mapSize
-    difference = second - first
-    if(difference[0] != 0):
-        type = EdgeType.horizontal
-    elif(difference[1] != 0):
-        type = EdgeType.vertical
+    edges = []
+    signs = []
+    currPos = np.array(source)
+    difference = np.array(destination) - currPos
+    while not np.array_equal(difference, np.array([0, 0])):
+        if difference[0] != 0:  # if theres some movement needed along the X-axis
+            if difference[0] < 0:
+                sign = -1
+                edgeIndex = currPos[1] * (n - 1) + currPos[0] - 1
+                currPos[0] -= 1
+            else:
+                sign = 1
+                edgeIndex = currPos[1] * (n - 1) + currPos[0]
+                currPos[0] += 1
 
-    if np.sum(difference) < 0:
-        sign = -1
-        first = second #swap
-    else:
-        sign = 1
-
-    if(type == EdgeType.horizontal):
-        rem = (n-1)*first[1] + first[0]
-        val = rem + n*(n-1)
-    elif(type == EdgeType.vertical):
-        val = (n-1)*first[0] + first[1]
-
-    return int(val), sign
-
-
-
-
+        elif difference[1] != 0:  # scope for movement along Y
+            if difference[1] < 0:
+                sign = -1
+                edgeIndex = n * (n - 1) + currPos[0] * (n - 1) + currPos[1] - 1
+                currPos[1] -= 1
+            else:
+                sign = 1
+                edgeIndex = n * (n - 1) + currPos[0] * (n - 1) + currPos[1]
+                currPos[1] += 1
+        edges.append(int(edgeIndex))
+        signs.append(int(sign))
+        difference = np.array(destination) - currPos
+    return edges, signs

@@ -1,7 +1,7 @@
 def singleVehicleStep(route, vLoc, curTime, mapSz, speed): #return the vehicle's updated route and its location
     newRoute, newvLoc = route, vLoc
     if(len(route) > 0):
-        order = route[0]
+        order = route[0][2] # first two indices are the location coordinates of either the restaurant or customer for that order
         if(order.orderPickedUp == False):
             newRoute, newvLoc = pickUpOrderOrMoveToRestaurant(route, vLoc, curTime, mapSz, speed, order)
         elif(order.orderPickedUp == True and order.orderDelivered == False):
@@ -34,7 +34,8 @@ def pickUpOrderOrMoveToRestaurant(route, vLoc, curTime, mapSz, speed, order):
                 vY += speedLeft
     if(vX == targetX and vY == targetY and curTime >= order.minDeliveryTime):
         order.orderPickedUp = True
-    return route, [vX,vY]
+        route.pop(0)
+    return route, [vX, vY]
 
 def deliverOrder(route, vLoc, curTime, mapSz, speed, order):
     targetX = order.customerX
@@ -62,6 +63,7 @@ def deliverOrder(route, vLoc, curTime, mapSz, speed, order):
                 vY += speedLeft
     if(vX == targetX and vY == targetY and curTime >= order.minDeliveryTime):
         order.orderDelivered = True
+        order.orderDeliveryTime = curTime
         route.pop(0)
 
-    return route,[vX,vY]
+    return route, [vX, vY]
